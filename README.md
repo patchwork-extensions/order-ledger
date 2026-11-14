@@ -10,6 +10,7 @@ This repository holds its code so you can check what it does with your data, ins
 - **No account, no tracking, no analytics.** The extension doesn't send anything about you or your orders anywhere.
 - **It only runs on Amazon's order-history pages.** It can't see other websites or your other tabs.
 - **Buying Lifetime shares one thing with us: the email you pay with**, which Stripe passes on so we can make your licence key. We don't keep a copy.
+- **One request to our server, once:** when you activate your key, so each key works in one browser. Details below.
 
 ## What it reads, and where it keeps it
 
@@ -41,7 +42,7 @@ It asks for no access to your browsing history, other sites, downloads or tabs.
 
 ## Network requests
 
-The extension itself makes **no requests to any server of ours, or to anyone else's**. The only pages it loads are Amazon's own order and invoice pages, inside your Amazon tab.
+Apart from one request when you activate a licence key (below), the extension makes **no requests to any server of ours, or to anyone else's**. The only pages it loads are Amazon's own order and invoice pages, inside your Amazon tab.
 
 Things you click can open other sites in a new tab: an order's invoice on Amazon, "View on Amazon", the Stripe checkout when you buy, and, only if one is shown, a clearly labelled partner offer next to Export.
 
@@ -49,7 +50,8 @@ Things you click can open other sites in a new tab: an order's invoice on Amazon
 
 1. **Unlock** opens a Stripe checkout page. Your card details go to Stripe, never to us. ([Stripe's privacy policy](https://stripe.com/gb/privacy))
 2. After paying, Stripe sends you to our licence service ([`licence-service/src/index.js`](licence-service/src/index.js)), which runs on Cloudflare. It asks Stripe whether that checkout was paid and for the email used, then signs a licence key and shows it to you. **It stores nothing**: no database, no copy of your key or email. Cloudflare may keep standard request logs.
-3. You paste the key into Order Ledger. The extension checks its signature with a public key built into [`extension/config.js`](extension/config.js), offline. See [`extension/licence.js`](extension/licence.js). The key contains your email so you can prove it's yours.
+3. You paste the key into Order Ledger. The extension checks its signature with a public key built into [`extension/config.js`](extension/config.js). See [`extension/licence.js`](extension/licence.js). The key contains your email so you can prove it's yours.
+4. **Once**, the extension sends the key and a random ID for your browser to the licence service's `/activate` address, so a key can only be used in one browser. The service stores a fingerprint (SHA-256 hash) of the key, the browser ID and the date: not the key, not your email, nothing about your orders. See `activate()` in [`licence-service/src/index.js`](licence-service/src/index.js) and `activate()` in [`extension/store.js`](extension/store.js). After that the key is only checked offline. If you move to a new computer, email us and we'll reset it.
 
 The licence service's secrets (the Stripe key and the key-signing key) are stored in Cloudflare, not in this code.
 
@@ -70,7 +72,7 @@ One difference: in this public copy, `PAYMENT_LINK` in `config.js` is blank unti
 | `extension/parser.js` | Reads orders off an order-history page |
 | `extension/sanitize.js` | Turns an invoice page into plain text and simple tables for the receipt pack |
 | `extension/shared.js` | Sums, tags, tax years and export files; no access to the page or network |
-| `extension/store.js`, `extension/licence.js` | Local storage and the offline licence check |
+| `extension/store.js`, `extension/licence.js` | Local storage, key activation and the offline licence check |
 | `extension/dashboard.*`, `popup.*`, `receipts.*` | What you see |
 | `licence-service/` | The Cloudflare service that turns a Stripe payment into a licence key |
 

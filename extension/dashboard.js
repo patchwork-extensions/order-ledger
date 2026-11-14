@@ -507,7 +507,7 @@
   $('pay-btn').addEventListener('click', () => OL.payments.openPayment());
   if (config.SUPPORT_EMAIL) {
     $('lost-key').hidden = false;
-    $('lost-key').textContent = `Lost your key? Email ${config.SUPPORT_EMAIL} from the address you paid with.`;
+    $('lost-key').textContent = `Each key works in one browser. Lost it, or moving to a new computer? Email ${config.SUPPORT_EMAIL} from the address you paid with.`;
   }
   $('activate-btn').addEventListener('click', async () => {
     const msg = $('key-msg');

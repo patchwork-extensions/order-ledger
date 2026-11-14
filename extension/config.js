@@ -9,10 +9,13 @@
     PAYMENT_LINK: '' /* test-mode link left out of the public copy */,
     // Public half of the licence signing key (run `node tools/make-keys.mjs`). Without it, nobody can unlock.
     LICENCE_PUBLIC_JWK: {"kty":"EC","crv":"P-256","x":"pIRAGIJJxpY-pXnwxo6p-oEvzMC3Y9zyOb0G46Au55w","y":"WI2iHadtoEgk7QRwk29iORNY8WO2uD2s4BVOIlV4unQ"},
+    // The licence service. Activating a key asks it once whether the key is already in use elsewhere
+    // (POST /activate); nothing else is ever sent there. Leave empty to check keys offline only.
+    LICENCE_SERVICE: 'https://licence.order-ledger-licence.workers.dev',
     // Where buyers write if they lose their key.
     SUPPORT_EMAIL: 'patchworksupport.6n6ki@silomails.com',
     // Shown in the UI. Keep it in step with the Payment Link price.
-    PRICE_LABEL: '£9.99',
+    PRICE_LABEL: '£4.99',
     // Developer switch: null, 'free' or 'lifetime'. Only honoured in unpacked (developer) installs
     // and in preview mode, so a store build ignores it.
     DEV_PLAN: null,

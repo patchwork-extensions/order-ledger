@@ -12,6 +12,16 @@
 //                          { "plink_…": { "product": "order-ledger", "name": "Order Ledger", "plan": "lifetime" } }
 //                          (a JSON string or a TOML table). Payments through any other link are refused.
 //   SUPPORT_EMAIL          shown on error pages
+//   ACTIVATIONS_PER_KEY    how many browsers one key can be activated in (default 1)
+// Storage (wrangler.toml [[kv_namespaces]]):
+//   ACTIVATIONS            one record per activated key, under key:<SHA-256 of the key>, holding only the
+//                          random browser IDs it was activated in and when. No email, no key.
+//
+// POST /activate { key, device } is the one request an extension makes: the first time a key is
+// activated. It answers { ok: true } for a valid key in a new or already-registered browser, and
+// { ok: false, reason: 'used' | 'invalid' } otherwise. After that the extension checks the key offline.
+// To let a customer re-activate (new computer, reinstall), delete the record:
+//   node key-id.mjs <their key>   prints the exact wrangler command.
 
 const ALG = { name: 'ECDSA', namedCurve: 'P-256' };
 const SIG = { name: 'ECDSA', hash: 'SHA-256' };
@@ -27,6 +37,61 @@ export async function signLicence(payload, privateJwk) {
   const body = toB64u(new TextEncoder().encode(JSON.stringify(payload)));
   const sig = await crypto.subtle.sign(SIG, priv, new TextEncoder().encode(body));
   return `${body}.${toB64u(sig)}`;
+}
+
+// ---------- one-time activation ----------
+const fromB64u = (str) => {
+  const b64 = str.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((str.length + 3) % 4);
+  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+};
+
+// The licence key's payload if its signature is ours, else null. Uses the public half of the signing key.
+export async function readLicence(key, privateJwk) {
+  try {
+    const [body, sig] = String(key).split('.');
+    if (!body || !sig) return null;
+    const { kty, crv, x, y } = privateJwk;
+    const pub = await crypto.subtle.importKey('jwk', { kty, crv, x, y }, ALG, false, ['verify']);
+    if (!(await crypto.subtle.verify(SIG, pub, fromB64u(sig), new TextEncoder().encode(body)))) return null;
+    return JSON.parse(new TextDecoder().decode(fromB64u(body)));
+  } catch (_) {
+    return null;
+  }
+}
+
+// Where a key's activations are stored: a hash, so the stored record can't be turned back into a key.
+export async function activationId(key) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(key).replace(/\s+/g, '')));
+  return 'key:' + [...new Uint8Array(digest)].slice(0, 16).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-allow-headers': 'content-type', 'access-control-max-age': '86400' };
+const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store', ...CORS } });
+
+async function activate(request, env) {
+  if (!env.ACTIVATIONS) return json({ ok: false, reason: 'unavailable' }, 503);
+  let input;
+  try {
+    input = await request.json();
+  } catch (_) {
+    return json({ ok: false, reason: 'bad-request' }, 400);
+  }
+  const key = String((input && input.key) || '').replace(/\s+/g, '');
+  const device = String((input && input.device) || '');
+  if (!key || key.length > 2000 || !/^[A-Za-z0-9-]{16,64}$/.test(device)) return json({ ok: false, reason: 'bad-request' }, 400);
+
+  const payload = await readLicence(key, JSON.parse(env.LICENCE_PRIVATE_JWK));
+  if (!payload) return json({ ok: false, reason: 'invalid' }, 400);
+
+  const id = await activationId(key);
+  const limit = Math.max(1, parseInt(env.ACTIVATIONS_PER_KEY || '1', 10) || 1);
+  const record = JSON.parse((await env.ACTIVATIONS.get(id)) || '{"devices":[]}');
+  if (record.devices.includes(device)) return json({ ok: true, product: payload.product });
+  if (record.devices.length >= limit) return json({ ok: false, reason: 'used' }, 409);
+  record.devices.push(device);
+  record.at = record.at || new Date().toISOString();
+  await env.ACTIVATIONS.put(id, JSON.stringify(record));
+  return json({ ok: true, product: payload.product });
 }
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -125,6 +190,11 @@ export default {
   async fetch(request, env, ctx, fetchImpl = fetch) {
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname === '/claim') return claim(url, env, fetchImpl);
+    if (url.pathname === '/activate') {
+      if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+      if (request.method === 'POST') return activate(request, env);
+      return json({ ok: false, reason: 'bad-request' }, 405);
+    }
     return new Response('Licence service', { status: 200, headers: { 'content-type': 'text/plain' } });
   }
 };

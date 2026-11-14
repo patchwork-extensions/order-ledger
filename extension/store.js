@@ -76,12 +76,38 @@
       return !!(licence && (await OL.verifyLicence(licence, config.LICENCE_PUBLIC_JWK)));
     },
     // Returns { ok: true } or { ok: false, reason }.
+    // A key is checked offline first. Then, once, the licence service is asked to register it to this
+    // browser: each key works in one browser (a random ID kept in local storage stands for "this browser").
+    // After activation, the key is only ever checked offline.
     async activate(key) {
       const { config } = OL;
+      const clean = String(key).replace(/\s+/g, '');
       if (!config.LICENCE_PUBLIC_JWK) return { ok: false, reason: 'Licence checking is not set up in this build yet.' };
-      const payload = await OL.verifyLicence(key, config.LICENCE_PUBLIC_JWK);
+      const payload = await OL.verifyLicence(clean, config.LICENCE_PUBLIC_JWK);
       if (!payload) return { ok: false, reason: "That key isn't valid. Copy the whole key from your purchase page and try again." };
-      await OL.store.set({ licence: String(key).replace(/\s+/g, ''), paidAt: Date.now() });
+
+      if (hasChrome && config.LICENCE_SERVICE) {
+        let { deviceId } = await OL.store.get('deviceId');
+        if (!deviceId) {
+          deviceId = crypto.randomUUID();
+          await OL.store.set({ deviceId });
+        }
+        const help = config.SUPPORT_EMAIL ? ` email ${config.SUPPORT_EMAIL} from the address you paid with and we'll reset it.` : ' contact us and we\'ll reset it.';
+        let res;
+        let data = {};
+        try {
+          res = await fetch(`${config.LICENCE_SERVICE}/activate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: clean, device: deviceId }) });
+          data = await res.json().catch(() => ({}));
+        } catch (_) {
+          return { ok: false, reason: "Couldn't reach the licence service. Check your internet connection and try again." };
+        }
+        if (!res.ok || !data.ok) {
+          if (data.reason === 'used') return { ok: false, reason: `This key has already been activated on another computer or browser. If that was you (a new computer or a reinstall),${help}` };
+          if (data.reason === 'invalid') return { ok: false, reason: "That key isn't valid. Copy the whole key from your purchase page and try again." };
+          return { ok: false, reason: 'The licence service couldn\'t activate this key just now. Try again in a minute.' };
+        }
+      }
+      await OL.store.set({ licence: clean, paidAt: Date.now() });
       return { ok: true };
     },
     canPay: () => !!OL.config.PAYMENT_LINK,
