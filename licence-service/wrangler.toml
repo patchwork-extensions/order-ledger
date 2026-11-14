@@ -17,14 +17,9 @@ ACTIVATIONS_PER_KEY = "1"
 # the plink_… id is on the link's page in the Stripe Dashboard. `product` must match the id the
 # extension checks for in its licence.js. Payments made through any link not listed here are refused.
 #
-# Order Ledger Lifetime at the old £9.99 price: SANDBOX (test-mode) link. Add the live link's table alongside it at go-live.
-[vars.PRODUCTS.plink_1UbguoRpfFmEPiV0lYAaixYG]
-product = "order-ledger"
-name = "Order Ledger"
-plan = "lifetime"
-
-# Order Ledger Lifetime at the old £9.99 price, with Stripe Managed Payments (merchant of record): SANDBOX link.
-[vars.PRODUCTS.plink_1Ubk3NRpfFmEPiV0DtFLekpI]
+# Order Ledger Lifetime, £4.99, LIVE link with Stripe Managed Payments (created 14 Nov 2026).
+# The sandbox links were removed on purpose: keep test-mode links out of here, or a test card would get a real key.
+[vars.PRODUCTS.plink_1UbmpzRpfFmEPiV0ujJkaUWH]
 product = "order-ledger"
 name = "Order Ledger"
 plan = "lifetime"

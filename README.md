@@ -61,8 +61,6 @@ Chrome keeps every extension's files on your computer. On Windows they're in
 `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Extensions\<extension id>\<version>\`
 (on a Mac, `~/Library/Application Support/Google/Chrome/Default/Extensions/`). Compare them with the [`extension/`](extension/) folder here for the same version number. The Web Store adds a small `_metadata` folder; everything else should match.
 
-One difference: in this public copy, `PAYMENT_LINK` in `config.js` is blank until Order Ledger is on sale, so a test checkout link isn't published.
-
 ## What's where
 
 | Path | What it is |

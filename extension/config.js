@@ -6,7 +6,7 @@
     // Your Stripe Payment Link for the one-time Lifetime purchase. Set its "after payment" redirect to
     // https://<your-worker>/claim?session_id={CHECKOUT_SESSION_ID} so buyers get their licence key.
     // TEST-MODE link (sandbox). Swap for the live link before publishing.
-    PAYMENT_LINK: '' /* test-mode link left out of the public copy */,
+    PAYMENT_LINK: 'https://buy.stripe.com/fZu9AVajz3tg1VR2fSgUM00',
     // Public half of the licence signing key (run `node tools/make-keys.mjs`). Without it, nobody can unlock.
     LICENCE_PUBLIC_JWK: {"kty":"EC","crv":"P-256","x":"pIRAGIJJxpY-pXnwxo6p-oEvzMC3Y9zyOb0G46Au55w","y":"WI2iHadtoEgk7QRwk29iORNY8WO2uD2s4BVOIlV4unQ"},
     // The licence service. Activating a key asks it once whether the key is already in use elsewhere
