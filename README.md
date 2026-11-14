@@ -36,7 +36,7 @@ From [`extension/manifest.json`](extension/manifest.json):
 |---|---|
 | `storage` | Save your orders and settings on your computer. |
 | `unlimitedStorage` | Room for receipt packs. No extra access; it only raises the storage limit. |
-| Content script on `amazon.co.uk/your-orders/*` and the older order-history addresses (and the amazon.com equivalents) | Read your order list. It runs on those pages and nowhere else. |
+| Content script on `amazon.co.uk/your-orders/*` and the older order-history addresses | Read your order list. It runs on those pages and nowhere else. |
 
 It asks for no access to your browsing history, other sites, downloads or tabs.
 
