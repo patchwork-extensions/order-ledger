@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Receipt pack · Order Ledger</title>
+<link rel="stylesheet" href="ui.css">
+<style>
+  .wrap { max-width: 880px; margin: 0 auto; padding: 28px 24px 64px; }
+  .bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+  h1 { font-size: 28px; margin-bottom: 4px; }
+  .sheet { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; margin-bottom: 20px; }
+  .facts { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 14px 0 18px; }
+  .facts b { display: block; font-family: var(--display); font-size: 22px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  td { padding: 7px 8px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .invoice-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 14px; }
+  .invoice-head h2 { font-size: 17px; }
+  .invoice-body { font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+  .invoice-body h1, .invoice-body h2, .invoice-body h3 { font-family: var(--font); font-size: 15px; margin: 10px 0 6px; }
+  .invoice-body table { width: auto; max-width: 100%; }
+  .invoice-body td, .invoice-body th { border: 0; padding: 2px 10px 2px 0; }
+  .invoice-body ul, .invoice-body ol { list-style: none; padding: 0; margin: 0 0 8px; }
+
+  /* a receipt page */
+  .r-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px 24px; padding-bottom: 16px; border-bottom: 2px solid var(--ink); }
+  .r-kicker { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .r-head h2 { font-size: 22px; }
+  .r-paid { text-align: right; }
+  .r-paid span { display: block; font-size: 12px; color: var(--muted); }
+  .r-paid b { font-family: var(--display); font-size: 30px; font-variant-numeric: tabular-nums; }
+  .r-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px 24px; margin: 18px 0 22px; }
+  .r-meta dt { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+  .r-meta dd { margin: 0; font-size: 14px; }
+  .r-items { margin-bottom: 18px; table-layout: fixed; }
+  .r-items th:nth-child(1) { width: 62%; }
+  .r-items th:nth-child(2) { width: 24%; }
+  .r-items td { font-size: 14px; }
+  .r-totals { width: min(340px, 100%); margin-left: auto; font-size: 14px; }
+  .r-totals td { border-bottom: 1px solid var(--line-soft); padding: 6px 8px; }
+  .r-totals tr.grand td { font-weight: 700; font-size: 16px; border-top: 2px solid var(--ink); border-bottom: 0; padding-top: 10px; }
+  .r-note { margin-top: 28px; font-size: 12px; color: var(--muted); }
+  .r-url { overflow-wrap: anywhere; }
+
+  .missing { color: var(--warn-ink); background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 10px; padding: 10px 14px; }
+  .foot { font-size: 12px; color: var(--muted); }
+  @media print {
+    /* No page margin leaves Chrome no room for its own date/title/address header and footer. */
+    @page { size: A4; margin: 0; }
+    body { background: #fff; }
+    .no-print { display: none !important; }
+    .wrap { padding: 0; max-width: none; }
+    .sheet { border: 0; border-radius: 0; padding: 16mm 16mm 14mm; margin: 0; }
+    .sheet.invoice { break-before: page; }
+    .r-totals, .r-items tr { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="bar no-print">
+    <div class="muted small">Order Ledger · receipt pack</div>
+    <button type="button" id="print" class="btn btn-primary">Print or save as PDF</button>
+  </div>
+
+  <section id="empty" class="sheet" hidden>
+    <h1>No receipt pack yet</h1>
+    <p class="muted">Open the Order Ledger dashboard, pick a year and press <b>Get receipts</b> in the Receipt pack card.</p>
+  </section>
+
+  <section id="summary" class="sheet" hidden>
+    <h1 id="title"></h1>
+    <div id="subtitle" class="muted"></div>
+    <div class="facts">
+      <div><span class="muted small">Orders</span><b id="f-count"></b></div>
+      <div><span class="muted small">Total of orders</span><b id="f-total"></b></div>
+      <div><span class="muted small">Invoices included</span><b id="f-included"></b></div>
+    </div>
+    <table>
+      <thead><tr><th scope="col">Date</th><th scope="col">Order number</th><th scope="col">Items</th><th scope="col">Status</th><th scope="col" class="num">Total</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <p class="foot">Amounts and invoices as shown by Amazon. Refunded orders are listed with their original total; check them against your bank statement. Order Ledger is not tax advice.</p>
+  </section>
+
+  <div id="invoices"></div>
+</main>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<script src="sanitize.js"></script>
+<script src="store.js"></script>
+<script src="receipts.js"></script>
+</body>
+</html>

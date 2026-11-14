@@ -1,0 +1,27 @@
+# One licence service for every extension; its address is https://licence.<your-subdomain>.workers.dev
+name = "licence"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+[vars]
+SUPPORT_EMAIL = "patchworksupport.6n6ki@silomails.com"
+
+# Which Stripe Payment Link sells which extension. Add one table per Payment Link:
+# the plink_… id is on the link's page in the Stripe Dashboard. `product` must match the id the
+# extension checks for in its licence.js. Payments made through any link not listed here are refused.
+#
+# Order Ledger Lifetime, £9.99: SANDBOX (test-mode) link. Add the live link's table alongside it at go-live.
+[vars.PRODUCTS.plink_1UbguoRpfFmEPiV0lYAaixYG]
+product = "order-ledger"
+name = "Order Ledger"
+plan = "lifetime"
+
+# Order Ledger Lifetime, £9.99, with Stripe Managed Payments (merchant of record): SANDBOX link.
+[vars.PRODUCTS.plink_1Ubk3NRpfFmEPiV0DtFLekpI]
+product = "order-ledger"
+name = "Order Ledger"
+plan = "lifetime"
+
+# Secrets, set with:
+#   npx wrangler secret put STRIPE_SECRET_KEY
+#   npx wrangler secret put LICENCE_PRIVATE_JWK

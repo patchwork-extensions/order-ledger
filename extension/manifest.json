@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Order Ledger: Amazon Order History Export & Spending Tracker",
+  "short_name": "Order Ledger",
+  "version": "0.1.0",
+  "description": "Track your Amazon spending by month and category. Export order history and invoice links to CSV, Xero, FreeAgent or QuickBooks.",
+  "permissions": [
+    "storage",
+    "unlimitedStorage"
+  ],
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "Order Ledger",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.amazon.co.uk/your-orders/*",
+        "https://www.amazon.co.uk/gp/your-account/order-history*",
+        "https://www.amazon.co.uk/gp/css/order-history*",
+        "https://www.amazon.com/your-orders/*",
+        "https://www.amazon.com/gp/your-account/order-history*",
+        "https://www.amazon.com/gp/css/order-history*"
+      ],
+      "js": [
+        "config.js",
+        "shared.js",
+        "parser.js",
+        "sanitize.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

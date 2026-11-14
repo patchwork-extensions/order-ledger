@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Order Ledger</title>
+<link rel="stylesheet" href="ui.css">
+<style>
+  body { width: 360px; background: var(--surface); }
+  header { display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 18px; border-bottom: 1px solid var(--line); }
+  main { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+  footer { padding: 10px 18px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+  .stack { display: flex; flex-direction: column; gap: 14px; }
+  .big { font-family: var(--display); font-size: 36px; font-weight: 700; letter-spacing: -0.01em; }
+  .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .stat { background: var(--ground); border-radius: 10px; padding: 9px 11px; }
+  .stat b { display: block; font-size: 16px; }
+  .stat span { font-size: 12px; color: var(--muted); }
+  .checks { display: flex; flex-direction: column; gap: 9px; }
+  .checks div { display: flex; gap: 10px; align-items: center; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <span class="logo-mark"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6"/><path d="M9 12h6"/></svg></span>
+    Order Ledger
+  </div>
+  <span style="flex-grow:1"></span>
+  <span id="plan-chip" class="chip chip-plan">Free plan</span>
+</header>
+
+<main>
+  <!-- No orders yet -->
+  <section id="view-idle" class="stack" hidden>
+    <div class="soft">
+      <div style="font-weight:600;font-size:15px;margin-bottom:4px">Sync your order history</div>
+      <div class="muted" style="font-size:13px">Order Ledger opens your Amazon orders page and reads it in this browser while you're signed in. Nothing is uploaded.</div>
+    </div>
+    <button id="sync-btn" class="btn btn-primary btn-lg btn-block">Sync orders</button>
+    <div class="checks">
+      <div><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4 10-10"/></svg>Spending by month and category</div>
+      <div><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4 10-10"/></svg>Search every order you've placed</div>
+      <div><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4 10-10"/></svg>Export to CSV, Xero, FreeAgent or QuickBooks</div>
+    </div>
+  </section>
+
+  <!-- Syncing -->
+  <section id="view-syncing" class="stack" hidden>
+    <h1 style="font-size:22px">Reading your orders…</h1>
+    <div id="sync-where" class="muted" style="font-size:13px"></div>
+    <div class="progress" role="progressbar" aria-label="Sync progress" aria-valuemin="0" aria-valuemax="100"><div id="sync-bar" style="width:0%"></div></div>
+    <div><b id="sync-found">0</b> orders found so far</div>
+    <div class="soft muted" style="font-size:13px">You can keep browsing in other tabs. Leave the Amazon tab open until this finishes.</div>
+    <button id="cancel-btn" class="btn btn-secondary btn-block">Cancel</button>
+  </section>
+
+  <!-- Error -->
+  <section id="view-error" class="stack" hidden>
+    <div class="notice"><b>Sync stopped.</b> <span id="error-msg"></span></div>
+    <button id="retry-btn" class="btn btn-primary btn-block">Try again</button>
+  </section>
+
+  <!-- Has orders -->
+  <section id="view-done" class="stack" hidden>
+    <div>
+      <div id="sum-label" class="muted" style="font-size:13px">Spent in the last 3 months</div>
+      <div id="sum-total" class="big">£0.00</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><span>Orders</span><b id="sum-count">0</b></div>
+      <div class="stat"><span>Avg order</span><b id="sum-avg">£0</b></div>
+      <div class="stat"><span>Refunds</span><b id="sum-refunds">0</b></div>
+    </div>
+    <div id="hidden-notice" class="notice" style="display:flex;gap:12px;align-items:flex-start" hidden>
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#9A3412" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-top:1px"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      <div>
+        <div style="font-weight:600"><span id="hidden-count">0</span> older orders are hidden</div>
+        <div style="font-size:13px">Unlock your full history for a one-time <span class="price">£9.99</span>.</div>
+        <button id="upgrade-btn" class="btn btn-ghost" style="height:36px;padding:0;color:#9A3412">See Lifetime</button>
+      </div>
+    </div>
+    <button id="open-dashboard" class="btn btn-primary btn-lg btn-block">Open dashboard</button>
+    <button id="resync-btn" class="btn btn-ghost btn-block">Sync again</button>
+  </section>
+</main>
+
+<footer><span>Processed in your browser</span><span>Not affiliated with Amazon</span></footer>
+
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<script src="licence.js"></script>
+<script src="store.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>

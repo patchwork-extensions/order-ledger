@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order Ledger dashboard</title>
+<link rel="stylesheet" href="ui.css">
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="logo">
+      <span class="logo-mark"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6"/><path d="M9 12h6"/></svg></span>
+      Order Ledger
+    </div>
+    <nav aria-label="Sections" class="nav">
+      <a href="#overview">Overview</a>
+      <a href="#categories">Categories</a>
+      <a href="#orders">Orders</a>
+      <a href="#repeats">Repeat buys</a>
+    </nav>
+    <span class="grow"></span>
+    <div class="search">
+      <label for="search" class="sr-only">Search orders</label>
+      <input id="search" class="input" type="search" placeholder="Search orders">
+    </div>
+    <span id="plan-chip" class="chip chip-plan">Free plan</span>
+  </div>
+</div>
+
+<div id="preview-banner" class="wrap" hidden>
+  <div class="soft muted" style="margin-top:16px;font-size:13px">Preview mode: sample data, because this page was opened outside the extension. Add <code>?plan=lifetime</code> to the address to see the paid view.</div>
+</div>
+
+<main class="wrap">
+  <section id="empty" class="card empty" hidden>
+    <h1>No orders yet</h1>
+    <p class="muted">Open the Order Ledger button in your toolbar and press <b>Sync orders</b>. It reads your Amazon order history in this browser.</p>
+  </section>
+
+  <div id="content" class="stack">
+    <div id="overview" class="head">
+      <div>
+        <h1 class="title">Your Amazon spending</h1>
+        <div id="sync-line" class="muted"></div>
+      </div>
+      <div class="head-controls">
+        <div id="period-mode" class="seg" role="group" aria-label="Year type">
+          <button type="button" data-period-mode="calendar" aria-pressed="true">Calendar years</button>
+          <button type="button" data-period-mode="tax" aria-pressed="false">UK tax years</button>
+        </div>
+        <div id="years" class="years" role="group" aria-label="Year"></div>
+      </div>
+    </div>
+
+    <div id="free-banner" class="notice banner" hidden>
+      <div><b>You're seeing the last <span class="free-months">3</span> months.</b> <span id="hidden-text"></span></div>
+      <button class="btn btn-warn js-upgrade">Unlock full history, <span class="price">£9.99</span> once</button>
+    </div>
+
+    <section id="locked-year" class="card locked" hidden>
+      <div class="lock-badge"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+      <h2><span class="year-name"></span> is part of your full history</h2>
+      <p class="muted">Your orders from <span class="year-name"></span> are already synced. Unlock Lifetime to see the charts and export them.</p>
+      <button class="btn btn-primary js-upgrade">See Lifetime</button>
+    </section>
+
+    <div id="data" class="stack">
+      <div class="kpis">
+        <div class="kpi"><div class="muted">Total spent · <span id="scope-label"></span></div><div id="kpi-total" class="kpi-value"></div><div id="kpi-biz" class="muted small"></div></div>
+        <div class="kpi"><div class="muted">Orders</div><div id="kpi-count" class="kpi-value"></div></div>
+        <div class="kpi"><div class="muted">Average order</div><div id="kpi-avg" class="kpi-value"></div></div>
+        <div class="kpi"><div class="muted">Refunds</div><div class="kpi-value"><span id="kpi-refunds"></span> <span id="kpi-refund-amt" class="kpi-sub"></span></div></div>
+      </div>
+
+      <div class="cols">
+        <div class="col-main stack">
+          <section class="card">
+            <div class="card-head">
+              <h2>Monthly spending, <span class="year-name"></span></h2>
+              <div class="legend">
+                <span><i style="background:var(--accent)"></i>Spent</span>
+                <span><i style="background:var(--peak)"></i>Biggest month</span>
+                <span id="legend-locked" hidden><i style="background:var(--locked)"></i>Locked</span>
+              </div>
+            </div>
+            <div class="chart-scroll"><div id="chart" class="chart"></div></div>
+          </section>
+
+          <section id="orders" class="card">
+            <div class="card-head">
+              <h2 id="orders-title">Orders</h2>
+              <div id="orders-count" class="muted"></div>
+            </div>
+            <div class="table-tools">
+              <div id="tag-filter" class="seg" role="group" aria-label="Show orders tagged">
+                <button type="button" data-tag-filter="all" aria-pressed="true">All</button>
+                <button type="button" data-tag-filter="business" aria-pressed="false">Business</button>
+                <button type="button" data-tag-filter="personal" aria-pressed="false">Personal</button>
+              </div>
+              <button type="button" id="bulk-tag" class="btn btn-ghost btn-sm" hidden></button>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th scope="col">Date</th><th scope="col">Items</th><th scope="col">Category</th><th scope="col" class="num">Amount</th><th scope="col">Status</th><th scope="col">Tag</th><th scope="col"><span class="sr-only">Invoice</span></th></tr></thead>
+                <tbody id="rows"></tbody>
+              </table>
+            </div>
+            <div id="no-rows" class="muted center" hidden></div>
+            <div class="center"><button id="show-more" class="btn btn-ghost" hidden>Show all orders</button></div>
+          </section>
+
+          <section id="repeats" class="card">
+            <div class="card-head">
+              <h2>Repeat purchases</h2>
+              <div id="repeats-count" class="muted"></div>
+            </div>
+            <div id="repeats-locked" class="locked locked-sm" hidden>
+              <div class="lock-badge"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+              <b id="repeats-teaser"></b>
+              <p class="muted">Lifetime shows how often you buy each one, what you've spent on it and how its price has moved since your first order.</p>
+              <button type="button" class="btn btn-primary js-upgrade">See Lifetime</button>
+            </div>
+            <div id="repeats-empty" class="muted" hidden></div>
+            <ul id="repeats-list" class="repeats"></ul>
+            <div id="repeats-note" class="muted small" hidden>For orders with just this item, the price is what you paid: the order total after discounts such as Subscribe &amp; Save, including any delivery charge.</div>
+            <div class="center"><button type="button" id="repeats-more" class="btn btn-ghost" hidden>Show all repeat purchases</button></div>
+          </section>
+        </div>
+
+        <div class="col-side stack">
+          <section id="export" class="card stack-sm">
+            <h2>Export</h2>
+            <div class="field">
+              <label for="format">Format</label>
+              <select id="format" class="select"></select>
+              <div id="format-hint" class="muted" style="font-size:13px"></div>
+            </div>
+            <div id="export-paid" class="stack-xs">
+              <label class="check"><input type="checkbox" id="biz-only"> <span>Business orders only <span id="biz-count" class="muted"></span></span></label>
+              <div id="biz-none" class="muted small" hidden>No orders tagged Business yet. Use the Tag column in the order list.</div>
+              <button id="dl-year" class="btn btn-primary btn-block"></button>
+              <button id="dl-all" class="btn btn-secondary btn-block">Download all orders</button>
+            </div>
+            <button id="export-locked" class="btn btn-secondary btn-block js-upgrade" hidden>
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              Unlock Lifetime to export
+            </button>
+            <div id="partner" class="partner" hidden>
+              <div class="ad-label">Ad · we may earn a commission</div>
+              <div class="soft stack-xs">
+                <b id="partner-title"></b>
+                <div id="partner-body" class="muted" style="font-size:13px"></div>
+                <a id="partner-link" href="#" target="_blank" rel="sponsored noopener noreferrer"></a>
+              </div>
+            </div>
+          </section>
+
+          <section id="receipts" class="card stack-sm">
+            <h2>Receipt pack</h2>
+            <p class="muted small" style="margin:0">Every Business order's Amazon invoice for <b class="period-name"></b>, with a summary page, in one file you can print or save as a PDF for your accountant or Self Assessment.</p>
+            <div id="receipts-paid" class="stack-xs">
+              <button type="button" id="receipts-btn" class="btn btn-primary btn-block"></button>
+              <div id="receipts-status" class="small" role="status"></div>
+              <div id="receipts-actions" class="stack-xs" hidden>
+                <button type="button" id="receipts-open" class="btn btn-secondary btn-block">Open receipt pack</button>
+              </div>
+              <button type="button" id="receipts-cancel" class="btn btn-ghost btn-sm" hidden>Stop</button>
+              <div class="muted small">It opens each invoice in a background Amazon tab, a few seconds apiece. Keep Amazon signed in until it finishes.</div>
+            </div>
+            <button type="button" id="receipts-locked" class="btn btn-secondary btn-block js-upgrade" hidden>
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              Unlock Lifetime for receipt packs
+            </button>
+          </section>
+
+          <section id="rules" class="card stack-sm" hidden>
+            <h2>Always Business</h2>
+            <p class="muted small" style="margin:0">Orders containing these products are tagged Business automatically. A tag you set by hand on an order always wins.</p>
+            <ul id="rules-list" class="rules"></ul>
+          </section>
+
+          <section id="categories" class="card stack-sm">
+            <h2>By category</h2>
+            <div id="cats" class="stack-sm"></div>
+            <div class="muted" style="font-size:12px">Categories are guessed from item names.</div>
+          </section>
+
+          <section class="card stack-sm">
+            <h2>Highlights</h2>
+            <div><div class="muted">Biggest month</div><b id="hl-peak"></b></div>
+            <div><div class="muted">Top category</div><b id="hl-cat"></b></div>
+            <div><div class="muted">Average per month</div><b id="hl-month"></b></div>
+          </section>
+
+          <div class="privacy">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#1E3A8A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/></svg>
+            <div>Your orders are stored on this device only. Order Ledger never sees them, and it's not affiliated with Amazon.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="rule-prompt" class="toast" role="status" hidden>
+  <span id="rule-prompt-text"></span>
+  <span class="toast-actions">
+    <button type="button" id="rule-yes" class="btn btn-primary btn-sm">Always</button>
+    <button type="button" id="rule-no" class="btn btn-ghost btn-sm">Not now</button>
+  </span>
+</div>
+
+<dialog id="upgrade" aria-labelledby="upgrade-title">
+  <form method="dialog" class="upgrade">
+    <div class="upgrade-head">
+      <div class="stack-xs">
+        <span class="chip chip-plan" style="align-self:flex-start">Lifetime</span>
+        <h2 id="upgrade-title">Unlock your full order history</h2>
+        <div id="upgrade-sub" class="muted"></div>
+      </div>
+      <button class="btn btn-ghost close" value="close" aria-label="Close"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <table class="compare">
+      <thead><tr><th scope="col"><span class="sr-only">Feature</span></th><th scope="col">Free</th><th scope="col" style="color:var(--accent)">Lifetime</th></tr></thead>
+      <tbody id="compare"></tbody>
+    </table>
+    <div class="price-row"><span class="price-big price">£9.99</span><span class="muted">one-time payment · no subscription</span></div>
+    <button type="button" id="pay-btn" class="btn btn-primary btn-lg btn-block">Unlock for <span class="price">£9.99</span></button>
+    <div id="pay-missing" class="muted center" style="font-size:13px" hidden>Checkout isn't set up in this build yet.</div>
+    <details id="key-box" class="key-box">
+      <summary>Already paid? Enter your licence key</summary>
+      <div class="field">
+        <label for="licence-key">Licence key</label>
+        <textarea id="licence-key" class="input key-input" rows="3" spellcheck="false" autocomplete="off"></textarea>
+        <div id="key-msg" role="status" class="muted" style="font-size:13px"></div>
+        <button type="button" id="activate-btn" class="btn btn-secondary btn-block">Activate</button>
+        <div id="lost-key" class="muted" style="font-size:12px" hidden></div>
+      </div>
+    </details>
+    <div class="muted center" style="font-size:12px">Secure checkout by Stripe. After paying you get a licence key to paste here.</div>
+  </form>
+</dialog>
+
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<script src="licence.js"></script>
+<script src="store.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>
